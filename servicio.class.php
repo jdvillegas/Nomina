@@ -4,8 +4,8 @@ class Servicio {
     private $horaInicio;
     private $horaFin;
     private $dia;
-    private $horas_ordinarias_param = 8; // Parámetro para horas ordinarias
-    private $maxHorasPorTurno = 12; // Máximo de horas por turno
+    private $horas_ordinarias_param = 8; // Parï¿½metro para horas ordinarias
+    private $maxHorasPorTurno = 12; // Mï¿½ximo de horas por turno
 
     public function __construct($horaInicio, $horaFin, $dia) {
         $this->horaInicio = $horaInicio;
@@ -49,7 +49,7 @@ class Servicio {
         $interval = new DateInterval('PT'.$franja_minutos.'M');
         $period = new DatePeriod($inicio, $interval, $fin > $inicio ? $fin : $fin->modify('+1 day'));
 
-        $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        $diasSemana = ['Lunes', 'Martes', 'Miï¿½rcoles', 'Jueves', 'Viernes', 'Sï¿½bado', 'Domingo'];
         $diaIndex = array_search($this->dia, $diasSemana);
         $diaActual = $diasSemana[$diaIndex];
         $diaSiguiente = $diasSemana[($diaIndex + 1) % 7];
@@ -260,7 +260,7 @@ class TurnosServicios {
     }
 
     public function imprimirTurnosEnMatriz($turnosAsignados) {
-        $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        $diasSemana = ['Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bado', 'Domingo'];
         $personas = array_unique(array_column($turnosAsignados, 'persona'));
         $matriz = [];
 
@@ -288,20 +288,36 @@ class TurnosServicios {
             echo "\n";
         }
     }
+
+    public function imprimirTurnosDetallados($turnosAsignados) {
+        echo str_pad('Dia', 15) . str_pad('Persona', 15) . str_pad('Tipo', 15) . str_pad('Horario Inicial', 20) . str_pad('Horario Final', 20) . "\n";
+        echo str_repeat('-', 85) . "\n";
+
+        foreach ($turnosAsignados as $turno => $detalles) {
+            $dia = array_key_first($detalles['dias']); // Obtener el dÃ­a de la franja donde inicia el servicio
+            echo str_pad($dia, 15);
+            echo str_pad($detalles['persona'], 15);
+            echo str_pad($turno, 15);
+            echo str_pad($detalles['hora_inicio_turno'], 20);
+            echo str_pad($detalles['hora_fin_turno'], 20);
+            echo "\n";
+        }
+    }
+    
 }
 
 // Ejemplo de uso
 $servicio1 = new Servicio('06:00', '06:00', 'Lunes');
 $servicio2 = new Servicio('06:00', '06:00', 'Martes');
-$servicio3 = new Servicio('06:00', '06:00', 'Miércoles');
+$servicio3 = new Servicio('06:00', '06:00', 'MiÃ©rcoles');
 $servicio4 = new Servicio('06:00', '06:00', 'Jueves');
 $servicio5 = new Servicio('06:00', '06:00', 'Viernes');
-$servicio6 = new Servicio('06:00', '06:00', 'Sábado');
+$servicio6 = new Servicio('06:00', '06:00', 'SÃ¡bado');
 $servicio7 = new Servicio('06:00', '06:00', 'Domingo');
 
 $turnosServicios = new TurnosServicios([$servicio1, $servicio2, $servicio3, $servicio4, $servicio5, $servicio6, $servicio7]);
 
-echo "\nCálculo de Horas por Turno:\n";
+echo "\nCÃ¡lculo de Horas por Turno:\n";
 $turnos = $turnosServicios->calcularHorasPorTurno();
 print_r($turnos);
 
@@ -314,18 +330,23 @@ echo "\nCantidad de Personas:\n";
 $cantidadPersonas = $turnosServicios->calcularCantidadPersonas();
 print_r($cantidadPersonas);
 
-echo "\nAsignar Personas a Turnos (Cantidad Mínima):\n";
+echo "\nAsignar Personas a Turnos (Cantidad MÃ­nima):\n";
 $turnosAsignadosMin = $turnosServicios->asignarPersonasATurnos($turnos, $cantidadPersonas['cantidad_minima_personas']);
 //print_r($turnosAsignadosMin);
 
-echo "\nAsignar Personas a Turnos (Cantidad Máxima):\n";
+echo "\nAsignar Personas a Turnos (Cantidad MÃ¡xima):\n";
 $turnosAsignadosMax = $turnosServicios->asignarPersonasATurnos($turnos, $cantidadPersonas['cantidad_maxima_personas']);
 //print_r($turnosAsignadosMax);
 
-echo "\nImprimir Turnos en Matriz (Cantidad Mínima):\n";
+echo "\nImprimir Turnos en Matriz (Cantidad MÃ­nima):\n";
 $turnosServicios->imprimirTurnosEnMatriz($turnosAsignadosMin);
 
-echo "\nImprimir Turnos en Matriz (Cantidad Máxima):\n";
+echo "\nImprimir Turnos en Matriz (Cantidad MÃ¡xima):\n";
 $turnosServicios->imprimirTurnosEnMatriz($turnosAsignadosMax);
+
+// Imprimir turnos detallados
+echo "\nImprimir Turnos Detallados (Cantidad MÃ¡xima):\n";
+$turnosServicios->imprimirTurnosDetallados($turnosAsignadosMin);
+
 
 ?>
