@@ -4,8 +4,8 @@ class Servicio {
     private $horaInicio;
     private $horaFin;
     private $dia;
-    private $horas_ordinarias_param = 8; // Parámetro para horas ordinarias
-    private $maxHorasPorTurno = 12; // Máximo de horas por turno
+    private $horas_ordinarias_param = 8; // Parï¿½metro para horas ordinarias
+    private $maxHorasPorTurno = 12; // Mï¿½ximo de horas por turno
 
     public function __construct($horaInicio, $horaFin, $dia) {
         $this->horaInicio = $horaInicio;
@@ -49,7 +49,7 @@ class Servicio {
         $interval = new DateInterval('PT'.$franja_minutos.'M');
         $period = new DatePeriod($inicio, $interval, $fin > $inicio ? $fin : $fin->modify('+1 day'));
 
-        $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        $diasSemana = ['Lunes', 'Martes', 'Miï¿½rcoles', 'Jueves', 'Viernes', 'Sï¿½bado', 'Domingo'];
         $diaIndex = array_search($this->dia, $diasSemana);
         $diaActual = $diasSemana[$diaIndex];
         $diaSiguiente = $diasSemana[($diaIndex + 1) % 7];
@@ -88,7 +88,7 @@ class Servicio {
     public function es_hora_diurna($hora) {
         $hora = new DateTime($hora);
         $inicioDiurno = new DateTime('06:00:00');
-        $finDiurno = new DateTime('22:00:00');
+        $finDiurno = new DateTime('21:00:00');
 
         return ($hora >= $inicioDiurno && $hora < $finDiurno) ? 1 : 0;
     }
@@ -135,6 +135,7 @@ class Servicio {
                     'extras_diurnas' => 0,
                     'extras_nocturnas' => 0,
                     'recargos_nocturnos' => 0,
+                    'recargos_diurnos' => 0,
                     'dias' => []
                 ];
             }
@@ -145,6 +146,7 @@ class Servicio {
                     'extras_diurnas' => 0,
                     'extras_nocturnas' => 0,
                     'recargos_nocturnos' => 0,
+                    'recargos_diurnos' => 0,
                     'hora_inicio' => $franja['hora'],
                     'hora_fin' => $franja['hora']
                 ];
@@ -155,21 +157,24 @@ class Servicio {
             if ($franja['hora_diurna']) {
                 if ($horasPorTurno[$turno]['ordinarias'] < $this->horas_ordinarias_param) {
                     $horasPorTurno[$turno]['ordinarias'] += $franja['minutos'] / 60;
-                    $horasPorTurno[$turno]['dias'][$dia]['ordinarias'] += $franja['minutos'] / 60;
+                    $horasPorTurno[$turno]['recargos_diurnos'] += $franja['minutos'] / 60;
+                    $horasPorTurno[$turno]['dias'][$dia]['ordinarias'] += $franja['minutos'] / 60;                    
+                    $horasPorTurno[$turno]['dias'][$dia]['recargos_diurnos'] += $franja['minutos'] / 60;                    
                 } else {
                     $horasPorTurno[$turno]['extras_diurnas'] += $franja['minutos'] / 60;
                     $horasPorTurno[$turno]['dias'][$dia]['extras_diurnas'] += $franja['minutos'] / 60;
                 }
             } else if ($franja['hora_nocturna']) {
-                if ($horasPorTurno[$turno]['ordinarias'] <= $this->horas_ordinarias_param) {
+                if ($horasPorTurno[$turno]['ordinarias'] < $this->horas_ordinarias_param) {
                     $horasPorTurno[$turno]['ordinarias'] += $franja['minutos'] / 60;
                     $horasPorTurno[$turno]['dias'][$dia]['ordinarias'] += $franja['minutos'] / 60;
+                    $horasPorTurno[$turno]['recargos_nocturnos'] += $franja['minutos'] / 60;
+                    $horasPorTurno[$turno]['dias'][$dia]['recargos_nocturnos'] += $franja['minutos'] / 60;
                 } else {
                     $horasPorTurno[$turno]['extras_nocturnas'] += $franja['minutos'] / 60;
                     $horasPorTurno[$turno]['dias'][$dia]['extras_nocturnas'] += $franja['minutos'] / 60;
                 }
-                $horasPorTurno[$turno]['recargos_nocturnos'] += $franja['minutos'] / 60;
-                $horasPorTurno[$turno]['dias'][$dia]['recargos_nocturnos'] += $franja['minutos'] / 60;
+
             }
 
             // Update the end time of the shift
@@ -181,30 +186,23 @@ class Servicio {
 }
 
 // Ejemplo de uso
-$servicio = new Servicio('06:00', '06:00', 'Lunes');
-$servicio2 = new Servicio('06:00', '06:00', 'Martes');
+$servicio = new Servicio('06:00', '06:00', 'Domingo');
 
-// Imprimir resultados de los métodos
+
+// Imprimir resultados de los mï¿½todos
 echo "Rangos Horarios:\n";
 print_r($servicio->getRangosHorarios());
-print_r($servicio2->getRangosHorarios());
 
-echo "\nAsignación de Horas:\n";
+echo "\nAsignaciï¿½n de Horas:\n";
 $asignacionHoras = $servicio->getAsignacionHoras();
 print_r($asignacionHoras);
-$asignacionHoras2 = $servicio2->getAsignacionHoras();
-print_r($asignacionHoras2);
 
-echo "\nAsignación de Turnos:\n";
+echo "\nAsignaciï¿½n de Turnos:\n";
 $asignacionConTurnos = $servicio->asignarTurnos($asignacionHoras);
 print_r($asignacionConTurnos);
-$asignacionConTurnos2 = $servicio2->asignarTurnos($asignacionHoras2);
-print_r($asignacionConTurnos2);
 
-echo "\nCálculo de Horas por Turno:\n";
+echo "\nCï¿½lculo de Horas por Turno:\n";
 $horasPorTurno = $servicio->calcularHorasPorTurno($asignacionConTurnos);
 print_r($horasPorTurno);
-$horasPorTurno2 = $servicio2->calcularHorasPorTurno($asignacionConTurnos2);
-print_r($horasPorTurno2);
 
 ?>
