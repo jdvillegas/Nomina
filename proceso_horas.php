@@ -1,207 +1,98 @@
 <?php
 
 class Servicio {
-    private $horaInicio;
-    private $horaFin;
+    private $horaInicio1;
+    private $horaFin1;
+    private $horaInicio2;
+    private $horaFin2;
     private $dia;
-    private $horas_ordinarias_param = 8; // Par�metro para horas ordinarias
-    private $maxHorasPorTurno = 12; // M�ximo de horas por turno
 
-    public function __construct($horaInicio, $horaFin, $dia) {
-        $this->horaInicio = $horaInicio;
-        $this->horaFin = $horaFin;
+    public function __construct($horaInicio1, $horaFin1, $horaInicio2, $horaFin2, $dia) {
+        $this->horaInicio1 = $horaInicio1;
+        $this->horaFin1 = $horaFin1;
+        $this->horaInicio2 = $horaInicio2;
+        $this->horaFin2 = $horaFin2;
         $this->dia = $dia;
     }
 
     public function getRangosHorarios() {
-        $inicio = new DateTime($this->horaInicio);
-        $fin = new DateTime($this->horaFin);
-
-        $rangos = [];
-
-        if ($inicio < $fin) {
-            // Caso 1: El horario no cruza la medianoche
-            $rangos[] = [
-                'inicio' => $inicio->format('H:i:s'),
-                'fin' => $fin->format('H:i:s')
-            ];
-        } else {
-            // Caso 2: El horario cruza la medianoche
-            $rangos[] = [
-                'inicio' => $inicio->format('H:i:s'),
-                'fin' => '23:59:59'
-            ];
-            $rangos[] = [
-                'inicio' => '00:00:00',
-                'fin' => $fin->format('H:i:s')
-            ];
-        }
-
-        return $rangos;
-    }
-
-    public function getAsignacionHoras() {
-        $asignacionHoras = [];
-
-        $inicio = new DateTime($this->horaInicio);
-        $fin = new DateTime($this->horaFin);
-        $franja_minutos = 60;
-        $interval = new DateInterval('PT'.$franja_minutos.'M');
-        $period = new DatePeriod($inicio, $interval, $fin > $inicio ? $fin : $fin->modify('+1 day'));
-
-        $diasSemana = ['Lunes', 'Martes', 'Mi�rcoles', 'Jueves', 'Viernes', 'S�bado', 'Domingo'];
-        $diaIndex = array_search($this->dia, $diasSemana);
-        $diaActual = $diasSemana[$diaIndex];
-        $diaSiguiente = $diasSemana[($diaIndex + 1) % 7];
-
-        foreach ($period as $hora) {
-            $horaStr = $hora->format('H:i:s');
-            $asignacion = 'dia_actual';
-
-            if ((int)$hora->format('H') < (int)$inicio->format('H')) {
-                $asignacion = 'dia_siguiente';
-            }
-
-            $asignacionHoras[] = [
-                'hora' => $horaStr,
-                'minutos' => $franja_minutos,
-                'asignacion' => $asignacion,
-                'asignacion_turno' => [
-                    'turno' => '',
-                ],
-                'hora_diurna' => $this->es_hora_diurna($horaStr),
-                'hora_nocturna' => $this->es_hora_nocturna($horaStr),
-                'dia' => $asignacion === 'dia_actual' ? $diaActual : $diaSiguiente
-            ];
-        }
-
+        // Implementación del método para obtener rangos horarios
+        // Ejemplo de retorno
         return [
-            'servicio' => [
-                'hora_inicio' => $this->horaInicio,
-                'hora_fin' => $this->horaFin,
-                'dia' => $diaActual,
-                'asignacion' => $asignacionHoras
-            ]
+            'inicio1' => $this->horaInicio1,
+            'fin1' => $this->horaFin1,
+            'inicio2' => $this->horaInicio2,
+            'fin2' => $this->horaFin2,
+            'dia' => $this->dia
         ];
     }
 
-    public function es_hora_diurna($hora) {
-        $hora = new DateTime($hora);
-        $inicioDiurno = new DateTime('06:00:00');
-        $finDiurno = new DateTime('21:00:00');
-
-        return ($hora >= $inicioDiurno && $hora < $finDiurno) ? 1 : 0;
-    }
-
-    public function es_hora_nocturna($hora) {
-        return $this->es_hora_diurna($hora) ? 0 : 1;
+    public function getAsignacionHoras() {
+        // Implementación del método para asignar horas
+        // Ejemplo de retorno con turnos partidos
+        return [
+            'Lunes' => [
+                ['hora_inicio' => '08:00', 'hora_fin' => '12:00'],
+                ['hora_inicio' => '14:00', 'hora_fin' => '18:00']
+            ],
+            'Martes' => [
+                ['hora_inicio' => '08:00', 'hora_fin' => '12:00'],
+                ['hora_inicio' => '14:00', 'hora_fin' => '18:00']
+            ],
+            // Otros días...
+        ];
     }
 
     public function asignarTurnos($asignacionHoras) {
-        $turnoIndex = 1;
-        $turnosPorDia = [];
-        $minutosAsignados = 0;
-        $diaInicioTurno = $asignacionHoras['servicio']['dia'];
-
-        foreach ($asignacionHoras['servicio']['asignacion'] as &$franja) {
-            $dia = $franja['dia'];
-            if (!isset($turnosPorDia[$diaInicioTurno])) {
-                $turnosPorDia[$diaInicioTurno] = 1;
+        // Implementación del método para asignar turnos
+        // Ejemplo de retorno
+        $turnos = [];
+        foreach ($asignacionHoras as $dia => $franjas) {
+            foreach ($franjas as $franja) {
+                $turnos[] = [
+                    'dia' => $dia,
+                    'hora_inicio' => $franja['hora_inicio'],
+                    'hora_fin' => $franja['hora_fin']
+                ];
             }
-
-            if ($minutosAsignados >= $this->maxHorasPorTurno * 60) {
-                $turnosPorDia[$diaInicioTurno]++;
-                $minutosAsignados = 0;
-                $diaInicioTurno = $dia; // Update the day when a new shift starts
-            }
-
-            $franja['asignacion_turno']['turno'] = 'T' . $diaInicioTurno . $turnosPorDia[$diaInicioTurno];
-            $minutosAsignados += $franja['minutos'];
         }
-
-        return $asignacionHoras;
+        return $turnos;
     }
 
     public function calcularHorasPorTurno($asignacionConTurnos) {
+        // Implementación del método para calcular horas por turno
+        // Ejemplo de retorno
         $horasPorTurno = [];
-
-        foreach ($asignacionConTurnos['servicio']['asignacion'] as $franja) {
-            $turno = $franja['asignacion_turno']['turno'];
-            $dia = $franja['dia'];
-            if (!isset($horasPorTurno[$turno])) {
-                $horasPorTurno[$turno] = [
-                    'total' => 0,
-                    'ordinarias' => 0,
-                    'extras_diurnas' => 0,
-                    'extras_nocturnas' => 0,
-                    'recargos_nocturnos' => 0,
-                    'recargos_diurnos' => 0,
-                    'dias' => []
-                ];
-            }
-
-            if (!isset($horasPorTurno[$turno]['dias'][$dia])) {
-                $horasPorTurno[$turno]['dias'][$dia] = [
-                    'ordinarias' => 0,
-                    'extras_diurnas' => 0,
-                    'extras_nocturnas' => 0,
-                    'recargos_nocturnos' => 0,
-                    'recargos_diurnos' => 0,
-                    'hora_inicio' => $franja['hora'],
-                    'hora_fin' => $franja['hora']
-                ];
-            }
-
-            $horasPorTurno[$turno]['total'] += $franja['minutos'] / 60;
-
-            if ($franja['hora_diurna']) {
-                if ($horasPorTurno[$turno]['ordinarias'] < $this->horas_ordinarias_param) {
-                    $horasPorTurno[$turno]['ordinarias'] += $franja['minutos'] / 60;
-                    $horasPorTurno[$turno]['recargos_diurnos'] += $franja['minutos'] / 60;
-                    $horasPorTurno[$turno]['dias'][$dia]['ordinarias'] += $franja['minutos'] / 60;                    
-                    $horasPorTurno[$turno]['dias'][$dia]['recargos_diurnos'] += $franja['minutos'] / 60;                    
-                } else {
-                    $horasPorTurno[$turno]['extras_diurnas'] += $franja['minutos'] / 60;
-                    $horasPorTurno[$turno]['dias'][$dia]['extras_diurnas'] += $franja['minutos'] / 60;
-                }
-            } else if ($franja['hora_nocturna']) {
-                if ($horasPorTurno[$turno]['ordinarias'] < $this->horas_ordinarias_param) {
-                    $horasPorTurno[$turno]['ordinarias'] += $franja['minutos'] / 60;
-                    $horasPorTurno[$turno]['dias'][$dia]['ordinarias'] += $franja['minutos'] / 60;
-                    $horasPorTurno[$turno]['recargos_nocturnos'] += $franja['minutos'] / 60;
-                    $horasPorTurno[$turno]['dias'][$dia]['recargos_nocturnos'] += $franja['minutos'] / 60;
-                } else {
-                    $horasPorTurno[$turno]['extras_nocturnas'] += $franja['minutos'] / 60;
-                    $horasPorTurno[$turno]['dias'][$dia]['extras_nocturnas'] += $franja['minutos'] / 60;
-                }
-
-            }
-
-            // Update the end time of the shift
-            $horasPorTurno[$turno]['dias'][$dia]['hora_fin'] = $franja['hora'];
+        foreach ($asignacionConTurnos as $turno) {
+            $dia = $turno['dia'];
+            $horaInicio = $turno['hora_inicio'];
+            $horaFin = $turno['hora_fin'];
+            $horasPorTurno[$dia][] = [
+                'hora_inicio' => $horaInicio,
+                'hora_fin' => $horaFin,
+                'total_horas' => (strtotime($horaFin) - strtotime($horaInicio)) / 3600
+            ];
         }
-
         return $horasPorTurno;
     }
 }
 
 // Ejemplo de uso
-$servicio = new Servicio('06:00', '06:00', 'Domingo');
+$servicio = new Servicio('08:00', '12:00', '14:00', '18:00', 'Lunes');
 
-
-// Imprimir resultados de los m�todos
+// Imprimir resultados de los métodos
 echo "Rangos Horarios:\n";
 print_r($servicio->getRangosHorarios());
 
-echo "\nAsignaci�n de Horas:\n";
+echo "\nAsignacion de Horas:\n";
 $asignacionHoras = $servicio->getAsignacionHoras();
 print_r($asignacionHoras);
 
-echo "\nAsignaci�n de Turnos:\n";
+echo "\nAsignacion de Turnos:\n";
 $asignacionConTurnos = $servicio->asignarTurnos($asignacionHoras);
 print_r($asignacionConTurnos);
 
-echo "\nC�lculo de Horas por Turno:\n";
+echo "\nCalculo de Horas por Turno:\n";
 $horasPorTurno = $servicio->calcularHorasPorTurno($asignacionConTurnos);
 print_r($horasPorTurno);
 

@@ -4,14 +4,16 @@ class Servicio {
     private $horaInicio;
     private $horaFin;
     private $dia;
+    private $incluye_feriados = 1; // Par�metro para incluir feriados
     private $horas_ordinarias_param = 7.66; // Par�metro para horas ordinarias
     private $maxHorasPorTurno = 12; // M�ximo de horas por turno
     private $franjaMinutosAsignacion = 1;  // Franja de minutos para la asignaci�n de horas
 
-    public function __construct($horaInicio, $horaFin, $dia) {
+    public function __construct($horaInicio, $horaFin, $dia, $incluye_feriados =1 ) {
         $this->horaInicio = $horaInicio;
         $this->horaFin = $horaFin;
         $this->dia = $dia;
+        $this->incluye_feriados = $incluye_feriados;
     }
 
     public function getRangosHorarios() {
@@ -190,9 +192,11 @@ class Servicio {
 
 class TurnosServicios {
     private $servicios;
+    private $incluye_feriados;
 
-    public function __construct($servicios) {
+    public function __construct($servicios, $incluye_feriados = 1) {
         $this->servicios = $servicios;
+        $this->incluye_feriados = $incluye_feriados;
     }
 
     public function calcularHorasPorTurno() {
@@ -467,6 +471,7 @@ function organizarTurnosPorDiaYTurno($turnos) {
         }
 
         $turnosOrganizados[$dia]['turnos'][$turnoNombre] = $turnoDetalles;
+        
 
         // Update the totals
         $turnosOrganizados[$dia]['totales']['ordinarias'] += $turno['ordinarias'];
@@ -767,6 +772,19 @@ function imprimirMatrizLiquidacion($liquidacion, $tipo = 'Horas', $proporcionali
     }
 }
 
+function calcularPromedio($array) {
+    $total = 0;
+    $count = 0;
+
+    foreach ($array as $mes => $valor) {
+        $total += $valor;
+        $count++;
+    }
+
+    return $count > 0 ? $total / $count : 0;
+}
+
+
 function generarMatrizLiquidacionJSON($liquidacion, $proporcionalidad = 3) {
     $matriz = [
         'Horas' => [
@@ -792,15 +810,16 @@ function generarMatrizLiquidacionJSON($liquidacion, $proporcionalidad = 3) {
     ];
 
     // Populate the matrix with values from the liquidacion array
+    $sum_promedios = 0;
     foreach ($liquidacion as $mes => $datos) {
         // Horas
-        $matriz['Horas']['QHED'][$mes] = round($datos['QHED'],2);
-        $matriz['Horas']['QHEN'][$mes] = round($datos['QHEN'],2);
-        $matriz['Horas']['QRN'][$mes] = round($datos['QRN'],2);
-        $matriz['Horas']['QRFD'][$mes] = round($datos['QRFD'],2);
-        $matriz['Horas']['QHEFN'][$mes] = round($datos['QHEFN'],2);
-        $matriz['Horas']['QRFN'][$mes] = round($datos['QRFN'],2);
-        $matriz['Horas']['QHFD'][$mes] = round($datos['QHFD'],2);
+        $matriz['Horas']['QHED'][$mes] = $datos['QHED'];
+        $matriz['Horas']['QHEN'][$mes] = $datos['QHEN'];
+        $matriz['Horas']['QRN'][$mes] = $datos['QRN'];
+        $matriz['Horas']['QRFD'][$mes] = $datos['QRFD'];
+        $matriz['Horas']['QHEFN'][$mes] = $datos['QHEFN'];
+        $matriz['Horas']['QRFN'][$mes] = $datos['QRFN'];
+        $matriz['Horas']['QHFD'][$mes] = $datos['QHFD'];
 
         // Valor
         $matriz['Valor']['VHED'][$mes] = $datos['VHED'];
@@ -812,25 +831,14 @@ function generarMatrizLiquidacionJSON($liquidacion, $proporcionalidad = 3) {
         $matriz['Valor']['VHFD'][$mes] = $datos['VHFD'];
         $matriz['Valor']['TVAR'][$mes] = $datos['VHED'] + $datos['VHEN'] + $datos['VRN'] + $datos['VRFD'] + $datos['VHEFN'] + $datos['VRFN'] + $datos['VHFD'];
         $matriz['Valor']['TPER'][$mes] = ($datos['VHED'] + $datos['VHEN'] + $datos['VRN'] + $datos['VRFD'] + $datos['VHEFN'] + $datos['VRFN'] + $datos['VHFD']) * ($proporcionalidad < 1 ? $proporcionalidad : (1 / $proporcionalidad));
+        
     }
 
-    // Calculate total and average for each row in Horas
-    foreach ($matriz['Horas'] as $tipo => $valores) {
-        $total = array_sum($valores);
-        $count = count($valores);
-        $promedio = $count > 0 ? $total / $count : 0;
-        $matriz['Horas'][$tipo]['Total'] = $total;
-        $matriz['Horas'][$tipo]['Promedio'] = $promedio;
-    }
-
-    // Calculate total and average for each row in Valor
-    foreach ($matriz['Valor'] as $tipo => $valores) {
-        $total = array_sum($valores);
-        $count = count($valores);
-        $promedio = $count > 0 ? $total / $count : 0;
-        $matriz['Valor'][$tipo]['Total'] = $total;
-        $matriz['Valor'][$tipo]['Promedio'] = $promedio;
-    }
+    //$sum_promedios = 0;
+    // Calculate valor_variable_persona
+    $matriz['personas']               = $proporcionalidad;
+    $matriz['variable_puesto']        = $this->calcularPromedio($matriz['Valor']['TVAR']);
+    $matriz['valor_variable_persona'] = $this->calcularPromedio($matriz['Valor']['TPER']);
 
     return json_encode($matriz, JSON_PRETTY_PRINT);
 }
@@ -840,6 +848,7 @@ function generarMatrizLiquidacionJSON($liquidacion, $proporcionalidad = 3) {
 }
 
 // Ejemplo de uso
+
 $servicio1 = new Servicio('06:00', '06:00', 'Lunes');
 $servicio2 = new Servicio('06:00', '06:00', 'Martes');
 $servicio3 = new Servicio('06:00', '06:00', 'Miércoles');
@@ -848,7 +857,7 @@ $servicio5 = new Servicio('06:00', '06:00', 'Viernes');
 $servicio6 = new Servicio('06:00', '06:00', 'Sábado');
 $servicio7 = new Servicio('06:00', '06:00', 'Domingo');
 
-$turnosServicios = new TurnosServicios([$servicio1, $servicio2, $servicio3, $servicio4, $servicio5, $servicio6, $servicio7]);
+$turnosServicios = new TurnosServicios([$servicio1, $servicio2, $servicio3, $servicio4, $servicio5, $servicio6, $servicio7],0);
 
 //$turnosServicios = new TurnosServicios([$servicio7]);
 
@@ -889,7 +898,8 @@ $calendario = $turnosServicios->obtenerFechasAnio($anio);
 
 //echo "\nAdicionarTurnosCalendario:\n";
 $calendarioConTurnos = $turnosServicios->adicionarTurnosACalendario($calendario, $turnosOrganizados);
-//print_r($calendarioConTurnos);
+print_r($calendarioConTurnos);
+die();
 
 
 $resumenDiario = $turnosServicios->resumenMensualYDiario($calendarioConTurnos);
