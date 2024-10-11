@@ -245,6 +245,44 @@ class DiaServicio {
 
         return $result;
     }
+
+    public function dividirTurnos() {
+        echo "imprime esto...";
+        $servicio = $this->generarServicio();
+        $turnos = [];
+
+        foreach (['ordinarios', 'feriados'] as $tipo) {
+            $horarios = $servicio['servicio'][$tipo];
+            $cantidad_total_horas = $horarios['cantidad_total_horas'];
+            $hora_inicio = new DateTime($horarios['hora_inicio']);
+            
+            if ($cantidad_total_horas == 24) {
+                $turnos[$tipo] = $this->crearTurnos($hora_inicio, [8, 8, 8]);
+            } elseif ($cantidad_total_horas >= 8 && $cantidad_total_horas <= 14) {
+                $turnos[$tipo] = $this->crearTurnos($hora_inicio, [$cantidad_total_horas]);
+            } elseif ($cantidad_total_horas >= 15 && $cantidad_total_horas <= 23) {
+                $mitad = ceil($cantidad_total_horas / 2);
+                $turnos[$tipo] = $this->crearTurnos($hora_inicio, [$mitad, $cantidad_total_horas - $mitad]);
+            }
+        }
+
+        return $turnos;
+    }
+
+    private function crearTurnos($hora_inicio, $duraciones) {
+        $turnos = [];
+        foreach ($duraciones as $duracion) {
+            $hora_fin = clone $hora_inicio;
+            $hora_fin->modify("+{$duracion} hours");
+            $turnos[] = [
+                'hora_inicio' => $hora_inicio->format('H:i:s'),
+                'hora_finalizacion' => $hora_fin->format('H:i:s'),
+                'duracion' => $duracion
+            ];
+            $hora_inicio = clone $hora_fin;
+        }
+        return $turnos;
+    }
 }
 
 // Ejemplo de uso
@@ -252,7 +290,9 @@ $dia = 7;
 $ordinarios = ['06:00', '06:00','',''];
 $festivos = ['06:00', '06:00', '', ''];
 
+
 $diaServicio = new DiaServicio($dia, $ordinarios, $festivos);
 print_r($diaServicio->generarServicio());
+print_r($diaServicio->dividirTurnos());
 
 ?>
